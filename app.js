@@ -37,7 +37,16 @@ app.get("/api/lokasi", async (req, res) => {
         const [longitude, latitude] = feature.geometry.coordinates;
         const items = [{ id: feature.id, text: feature.text }, ...(feature.context || [])];
 
-
+        // 2) Suhu dari Open-Meteo
+        let suhu = null;
+        try {
+            const cuaca = await axios.get("https://api.open-meteo.com/v1/forecast", {
+                params: { latitude, longitude, current: "temperature_2m" },
+            });
+            suhu = cuaca.data.current.temperature_2m;
+        } catch (e) {
+            console.error("Gagal ambil suhu:", e.message);
+        }
 
 
     } catch (error) {

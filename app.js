@@ -16,6 +16,13 @@ const cari = (items, ...tipe) => {
     return "-";
 };
 
+app.get("/api/lokasi", async (req, res) => {
+    const kota = (req.query.q || "").trim();
+    if (!kota) {
+        return res.status(400).json({ message: "Parameter q (nama lokasi) wajib diisi" });
+    }
+
+});
 
 app.listen(PORT, () => {
     console.log(`Server berjalan di http://localhost:${PORT}`);

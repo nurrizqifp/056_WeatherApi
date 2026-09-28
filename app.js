@@ -29,7 +29,10 @@ app.get("/api/lokasi", async (req, res) => {
             { params: { key: process.env.MAPTILER_KEY, limit: 1, language: "id" } }
         );
 
-
+        const feature = geo.data.features[0];
+        if (!feature) {
+            return res.status(404).json({ message: `Lokasi "${kota}" tidak ditemukan` });
+        }
 
 
 

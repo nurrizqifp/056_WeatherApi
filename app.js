@@ -34,7 +34,8 @@ app.get("/api/lokasi", async (req, res) => {
             return res.status(404).json({ message: `Lokasi "${kota}" tidak ditemukan` });
         }
 
-
+        const [longitude, latitude] = feature.geometry.coordinates;
+        const items = [{ id: feature.id, text: feature.text }, ...(feature.context || [])];
 
 
 

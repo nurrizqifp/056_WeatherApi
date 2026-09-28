@@ -22,6 +22,24 @@ app.get("/api/lokasi", async (req, res) => {
         return res.status(400).json({ message: "Parameter q (nama lokasi) wajib diisi" });
     }
 
+    try {
+        // 1) Geocoding dari MapTiler
+        const geo = await axios.get(
+            `https://api.maptiler.com/geocoding/${encodeURIComponent(kota)}.json`,
+            { params: { key: process.env.MAPTILER_KEY, limit: 1, language: "id" } }
+        );
+
+
+
+
+
+
+
+
+    } catch (error) {
+        console.error(error.message);
+        res.status(500).json({ message: "Gagal mengambil data dari MapTiler" });
+    }
 });
 
 app.listen(PORT, () => {

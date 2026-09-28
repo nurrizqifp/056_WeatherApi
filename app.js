@@ -48,7 +48,15 @@ app.get("/api/lokasi", async (req, res) => {
             console.error("Gagal ambil suhu:", e.message);
         }
 
-
+        res.json({
+            lokasi: feature.place_name,
+            negara: cari(items, "country"),
+            provinsi: cari(items, "region"),
+            kecamatan: cari(items, "municipal_district", "joint_submunicipality", "locality", "county"),
+            suhu,
+            longitude,
+            latitude,
+        });
     } catch (error) {
         console.error(error.message);
         res.status(500).json({ message: "Gagal mengambil data dari MapTiler" });

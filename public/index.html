@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geolocation & Cuaca</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: { extend: {
+                fontFamily: { sans: ["Inter", "system-ui", "sans-serif"] },
+                colors: {
+                    border: "hsl(var(--border))", input: "hsl(var(--input))", ring: "hsl(var(--ring))",
+                    background: "hsl(var(--background))", foreground: "hsl(var(--foreground))",
+                    primary: { DEFAULT: "hsl(var(--primary))", foreground: "hsl(var(--primary-foreground))" },
+                    muted: { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
+                    card: "hsl(var(--card))", destructive: "hsl(var(--destructive))"
+                },
+                borderRadius: { lg: "var(--radius)", md: "calc(var(--radius) - 2px)" }
+            } }
+        };
+    </script>
+    <style>
+        :root {
+            --background: 0 0% 100%; --foreground: 240 10% 3.9%; --card: 0 0% 100%;
+            --primary: 240 5.9% 10%; --primary-foreground: 0 0% 98%;
+            --muted: 240 4.8% 95.9%; --muted-foreground: 240 3.8% 46.1%;
+            --border: 240 5.9% 90%; --input: 240 5.9% 90%; --ring: 240 5.9% 10%;
+            --destructive: 0 72% 51%; --radius: 0.75rem;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --background: 240 10% 3.9%; --foreground: 0 0% 98%; --card: 240 10% 5.5%;
+                --primary: 0 0% 98%; --primary-foreground: 240 5.9% 10%;
+                --muted: 240 3.7% 15.9%; --muted-foreground: 240 5% 64.9%;
+                --border: 240 3.7% 15.9%; --input: 240 3.7% 15.9%; --ring: 240 4.9% 83.9%;
+            }
+        }
+        body { background-image: radial-gradient(circle at 15% 0%, hsl(200 90% 60% / .18), transparent 40%),
+                                radial-gradient(circle at 90% 10%, hsl(35 95% 60% / .16), transparent 35%); }
+        @keyframes pop { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+        .pop { animation: pop .35s ease-out both; }
+        @media (prefers-reduced-motion: reduce) { .pop { animation: none; } }
+    </style>
+</head>
+
+<body class="min-h-screen bg-background font-sans text-foreground antialiased">
+<main class="mx-auto max-w-2xl px-4 py-10">
+
+    <div class="mb-6 flex flex-wrap items-center gap-2">
+        <span class="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold">Nur Rizqi Febriansyah Putra</span>
+        <span class="inline-flex items-center rounded-full bg-primary px-3 py-1 text-xs font-semibold text-primary-foreground">NIM 20240140056</span>
+    </div>
+
+    <section class="rounded-lg border bg-card shadow-sm">
+        <div class="space-y-1.5 p-6">
+            <h1 class="text-3xl font-extrabold tracking-tight">Cek lokasi dan cuaca</h1>
+            <p class="text-sm text-muted-foreground">Ketik nama kota atau daerah, lalu lihat wilayah, koordinat, dan suhunya sekarang.</p>
+        </div>
+
+        <div class="px-6 pb-6">
+            <div class="flex gap-2">
+                <input id="input-lokasi" type="text" value="Kasihan" placeholder="Contoh: Kasihan, Yogyakarta"
+                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background">
+                <button id="btn-cari"
+                    class="inline-flex h-10 shrink-0 items-center justify-center rounded-md bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-50">
+                    Cari lokasi
+                </button>
+            </div>
+
+            <div id="status" class="mt-6" aria-live="polite"></div>
+        </div>
+    </section>
+
+</main>
+
+<script>
+    const input = document.getElementById("input-lokasi");
+    const tombol = document.getElementById("btn-cari");
+    const status = document.getElementById("status");
+
+    const tile = (label, nilai) => `
+        <div class="rounded-md border bg-muted/50 p-4" style="background:hsl(var(--muted)/.5)">
+            <p class="text-xs text-muted-foreground">${label}</p>
+            <p class="mt-1 break-words text-lg font-semibold">${nilai}</p>
+        </div>`;
+
+    const ikonSuhu = (t) => (t === null ? "🌡️" : t >= 32 ? "🔥" : t >= 27 ? "☀️" : t >= 22 ? "⛅" : "🌧️");
+
+    function skeleton() {
+        status.innerHTML = `<div class="animate-pulse space-y-3">
+            <div class="h-28 rounded-md bg-muted"></div>
+            <div class="grid grid-cols-2 gap-3"><div class="h-16 rounded-md bg-muted"></div><div class="h-16 rounded-md bg-muted"></div>
+            <div class="h-16 rounded-md bg-muted"></div><div class="h-16 rounded-md bg-muted"></div></div></div>`;
+    }
+
+    function error(pesan) {
+        status.innerHTML = `<div class="pop rounded-md border border-destructive/50 p-4 text-sm" style="color:hsl(var(--destructive))">
+            <p class="font-semibold">Data tidak ditemukan</p><p>${pesan}. Periksa ejaan atau coba nama yang lebih spesifik.</p></div>`;
+    }
+
+    async function cari() {
+        const q = input.value.trim();
+        if (!q) return error("Nama lokasi masih kosong");
+        tombol.disabled = true; tombol.textContent = "Mencari...";
+        skeleton();
+        try {
+            const res = await fetch("/api/lokasi?q=" + encodeURIComponent(q));
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.message);
+
+            const suhu = data.suhu === null ? "–" : data.suhu.toFixed(1) + "°C";
+            status.innerHTML = `<div class="pop space-y-3">
+                <div class="flex items-center justify-between gap-4 rounded-lg p-5 text-white"
+                     style="background:linear-gradient(135deg,#0ea5e9,#6366f1)">
+                    <div class="min-w-0">
+                        <p class="text-sm opacity-90">Suhu sekarang</p>
+                        <p class="text-6xl font-extrabold tracking-tight">${suhu}</p>
+                        <p class="mt-1 truncate text-sm opacity-90">${data.lokasi}</p>
+                    </div>
+                    <div class="text-7xl" aria-hidden="true">${ikonSuhu(data.suhu)}</div>
+                </div>
+                <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    ${tile("Negara", data.negara)}${tile("Provinsi", data.provinsi)}${tile("Kecamatan", data.kecamatan)}
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    ${tile("Longitude", data.longitude.toFixed(5))}${tile("Latitude", data.latitude.toFixed(5))}
+                </div>
+            </div>`;
+        } catch (e) {
+            error(e.message);
+        } finally {
+            tombol.disabled = false; tombol.textContent = "Cari lokasi";
+        }
+    }
+
+    tombol.addEventListener("click", cari);
+    input.addEventListener("keydown", (e) => { if (e.key === "Enter") cari(); });
+    cari();
+</script>
+</body>
+</html>
